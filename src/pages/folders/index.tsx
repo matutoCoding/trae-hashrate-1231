@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, Image, Input, ScrollView } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
-import { mockFolders, getFolderById } from '@/data/folders';
 import { useAppContext } from '@/store/AppContext';
 import FolderCard from '@/components/FolderCard';
 import SectionHeader from '@/components/SectionHeader';
@@ -21,7 +20,7 @@ const filters: { key: FilterType; label: string; icon: string }[] = [
 ];
 
 const FoldersPage: React.FC = () => {
-  const { user, refreshKey } = useAppContext();
+  const { user, folders, refreshKey, triggerRefresh } = useAppContext();
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -30,13 +29,14 @@ const FoldersPage: React.FC = () => {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
+      triggerRefresh();
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
     }, 800);
   });
 
   const filteredFolders = useMemo(() => {
-    let result = [...mockFolders];
+    let result = [...folders];
 
     if (searchText.trim()) {
       const keyword = searchText.trim().toLowerCase();
@@ -66,15 +66,15 @@ const FoldersPage: React.FC = () => {
       const priority = { danger: 0, warning: 1, safe: 2 } as const;
       return priority[a.status] - priority[b.status];
     });
-  }, [searchText, activeFilter, refreshKey]);
+  }, [searchText, activeFilter, folders, refreshKey]);
 
   const stats = useMemo(() => {
-    const total = mockFolders.length;
-    const danger = mockFolders.filter((f) => f.status === 'danger').length;
-    const warning = mockFolders.filter((f) => f.status === 'warning').length;
-    const safe = mockFolders.filter((f) => f.status === 'safe').length;
+    const total = folders.length;
+    const danger = folders.filter((f) => f.status === 'danger').length;
+    const warning = folders.filter((f) => f.status === 'warning').length;
+    const safe = folders.filter((f) => f.status === 'safe').length;
     return { total, danger, warning, safe };
-  }, []);
+  }, [folders, refreshKey]);
 
   const handleFolderClick = (folder: Folder) => {
     console.log('[FoldersPage] 点击文件夹:', folder.id, folder.name);

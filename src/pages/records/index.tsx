@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
-import { mockRecords } from '@/data/records';
+import { useAppContext } from '@/store/AppContext';
 import RecordItem from '@/components/RecordItem';
 import SectionHeader from '@/components/SectionHeader';
 import styles from './index.module.scss';
@@ -17,33 +17,35 @@ const filters: { key: FilterType; label: string; icon: string }[] = [
 ];
 
 const RecordsPage: React.FC = () => {
+  const { records, refreshKey, triggerRefresh } = useAppContext();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [timeRange, setTimeRange] = useState('近30天');
 
   usePullDownRefresh(() => {
     setTimeout(() => {
+      triggerRefresh();
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
     }, 800);
   });
 
   const filteredRecords = useMemo(() => {
-    let result = [...mockRecords];
+    let result = [...records];
     if (activeFilter !== 'all') {
       result = result.filter((r) => r.action === activeFilter);
     }
     return result.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [activeFilter]);
+  }, [activeFilter, records, refreshKey]);
 
   const summary = useMemo(() => {
     return {
-      retain: mockRecords.filter((r) => r.action === 'retain').length,
-      revoke: mockRecords.filter((r) => r.action === 'revoke').length,
-      feedback: mockRecords.filter((r) => r.action === 'feedback').length,
+      retain: records.filter((r) => r.action === 'retain').length,
+      revoke: records.filter((r) => r.action === 'revoke').length,
+      feedback: records.filter((r) => r.action === 'feedback').length,
     };
-  }, []);
+  }, [records, refreshKey]);
 
   const handleTimeChange = () => {
     const options = ['近7天', '近30天', '近90天', '全部'];

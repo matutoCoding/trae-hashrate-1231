@@ -28,7 +28,7 @@ const RecordItem: React.FC<RecordItemProps> = ({ record }) => {
 
   const handleClick = () => {
     Taro.navigateTo({
-      url: `/pages/feedback-detail/index?id=${record.id}`,
+      url: `/pages/feedback-detail/index?recordId=${record.id}`,
     });
   };
 

@@ -2,30 +2,27 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, Image, ScrollView, Textarea } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
-import { getFolderById, mockMembers } from '@/data/folders';
-import { getTaskById } from '@/data/tasks';
-import { getPermissionText, getPermissionColor, dayjs } from '@/utils';
-import { Member, PermissionLevel } from '@/types';
 import { useAppContext } from '@/store/AppContext';
+import { getPermissionText, getPermissionColor, dayjs } from '@/utils';
+import { Member, PermissionLevel, ActionType } from '@/types';
 import styles from './index.module.scss';
-
-type ActionChoice = 'retain' | 'revoke' | 'feedback' | null;
 
 const PermissionActionPage: React.FC = () => {
   const router = useRouter();
-  const { triggerRefresh } = useAppContext();
+  const { getFolderById, getTaskById, getMemberById, handlePermissionAction } = useAppContext();
   const { taskId, folderId = 'f1', memberId = 'm4' } = router.params;
 
   const task = taskId ? getTaskById(taskId) : undefined;
   const folder = getFolderById(folderId);
   const member: Member | undefined = useMemo(() => {
     if (folder?.members) {
-      return folder.members.find((m) => m.id === memberId);
+      const fromFolder = folder.members.find((m) => m.id === memberId);
+      if (fromFolder) return fromFolder;
     }
-    return mockMembers.find((m) => m.id === memberId);
-  }, [folder, memberId]);
+    return getMemberById(memberId);
+  }, [folder, memberId, getMemberById]);
 
-  const [action, setAction] = useState<ActionChoice>(null);
+  const [action, setAction] = useState<ActionType | null>(null);
   const [expireDate, setExpireDate] = useState<string>(
     member?.expireAt || dayjs().add(7, 'day').format('YYYY-MM-DD')
   );
@@ -55,10 +52,6 @@ const PermissionActionPage: React.FC = () => {
   };
 
   const handleDatePick = () => {
-    const year = dayjs(expireDate).year();
-    const month = String(dayjs(expireDate).month() + 1).padStart(2, '0');
-    const day = String(dayjs(expireDate).date()).padStart(2, '0');
-    const initial = `${year}-${month}-${day}`;
     Taro.showActionSheet({
       itemList: quickDateOptions.map((o) => `${o.label}（${dayjs().add(o.days, 'day').format('MM月DD日')}）`),
       success: (res) => {
@@ -70,23 +63,45 @@ const PermissionActionPage: React.FC = () => {
 
   const canSubmit = action !== null && (action !== 'retain' || !!expireDate);
 
+  const validateBeforeSubmit = (): boolean => {
+    if (!action) {
+      Taro.showToast({ title: '请选择处理方式', icon: 'none' });
+      return false;
+    }
+    if (!reason.trim()) {
+      Taro.showToast({
+        title: '请填写原因说明',
+        icon: 'none',
+        duration: 1800,
+      });
+      return false;
+    }
+    if (action === 'retain' && !expireDate) {
+      Taro.showToast({ title: '请设置保留有效期', icon: 'none' });
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
+    if (!validateBeforeSubmit()) return;
+
     setSubmitting(true);
 
-    console.log('[PermissionAction] 提交审核:', {
+    handlePermissionAction({
       taskId,
       folderId,
       memberId,
-      action,
-      expireDate: action === 'retain' ? expireDate : undefined,
-      reason,
+      memberName: member?.name || task?.memberName || '未知成员',
+      action: action!,
+      reason: reason.trim(),
+      expireAt: action === 'retain' ? expireDate : undefined,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     setSubmitting(false);
-    triggerRefresh();
 
     const actionText =
       action === 'retain' ? '权限已保留' : action === 'revoke' ? '权限已收回' : '反馈已提交';
@@ -112,6 +127,11 @@ const PermissionActionPage: React.FC = () => {
     : action === 'revoke'
     ? '确认收回权限'
     : '提交反馈';
+
+  const reasonRequiredHint =
+    action === 'revoke' || action === 'feedback'
+      ? '（必填）'
+      : '（必填，请简要说明）';
 
   return (
     <>
@@ -143,12 +163,12 @@ const PermissionActionPage: React.FC = () => {
         <View className={styles.memberProfile}>
           <Image
             className={styles.memberAvatar}
-            src={member?.avatar || 'https://picsum.photos/id/1005/200/200'}
+            src={member?.avatar || task?.memberAvatar || 'https://picsum.photos/id/1005/200/200'}
             mode="aspectFill"
           />
           <View className={styles.memberBasicInfo}>
             <View className={styles.memberNameRow}>
-              <Text className={styles.memberName}>{member?.name || '未知用户'}</Text>
+              <Text className={styles.memberName}>{member?.name || task?.memberName || '未知用户'}</Text>
               {member?.isExternal && (
                 <Text className={styles.externalBadge}>
                   {member.externalCompany || '外部协作'}
@@ -279,19 +299,17 @@ const PermissionActionPage: React.FC = () => {
         <View className={styles.reasonSection}>
           <View className={styles.reasonLabel}>
             <Text>✏️ 填写原因说明</Text>
-            <Text className={styles.reasonOptional}>
-              {action === 'revoke' ? '（必填）' : '（选填，建议填写以便审计追溯）'}
-            </Text>
+            <Text className={styles.reasonOptional}>{reasonRequiredHint}</Text>
           </View>
           <View className={styles.reasonInputWrap}>
             <Textarea
               className={styles.reasonInput}
               placeholder={
                 action === 'revoke'
-                  ? '请简要说明收回该账号权限的原因...'
+                  ? '请简要说明收回该账号权限的原因（必填）...'
                   : action === 'feedback'
-                  ? '请描述您发现的异常情况，便于安全团队跟进...'
-                  : '例如：项目持续进行中，合同期至XX时间...'
+                  ? '请描述您发现的异常情况，便于安全团队跟进（必填）...'
+                  : '请说明保留该权限的原因，例如：项目持续进行中，合同期至XX时间...'
               }
               value={reason}
               onInput={(e) => setReason(e.detail.value)}

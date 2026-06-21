@@ -1,6 +1,6 @@
 import { Task } from '@/types';
 
-export const mockTasks: Task[] = [
+export const initialTasks: Task[] = [
   {
     id: 't1',
     type: 'review',
@@ -104,10 +104,14 @@ export const mockTasks: Task[] = [
   },
 ];
 
-export const getTaskById = (id: string): Task | undefined => {
-  return mockTasks.find((t) => t.id === id);
+export const mockTasks = initialTasks;
+
+export const getTaskById = (id: string, tasks?: Task[]): Task | undefined => {
+  const list = tasks || initialTasks;
+  return list.find((t) => t.id === id);
 };
 
-export const getPendingTaskCount = () => {
-  return mockTasks.filter((t) => !t.handled).length;
+export const getPendingTaskCount = (tasks?: Task[]) => {
+  const list = tasks || initialTasks;
+  return list.filter((t) => !t.handled).length;
 };

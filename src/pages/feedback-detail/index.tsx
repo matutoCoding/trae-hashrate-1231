@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Image, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
-import { mockRecords } from '@/data/records';
-import { getFolderById, mockMembers } from '@/data/folders';
+import { useAppContext } from '@/store/AppContext';
 import { formatDate, formatRelativeTime, dayjs, getPermissionText, getPermissionColor } from '@/utils';
 import { Member, Record as RecordType } from '@/types';
 import styles from './index.module.scss';
@@ -17,25 +16,28 @@ interface TimelineNode {
 
 const FeedbackDetailPage: React.FC = () => {
   const router = useRouter();
-  const { recordId } = router.params;
+  const { getRecordById, getFolderById, getMemberById } = useAppContext();
+  const { id, recordId } = router.params;
+  const actualRecordId = recordId || id;
 
   const record: RecordType | undefined = useMemo(
-    () => mockRecords.find((r) => r.id === recordId),
-    [recordId]
+    () => (actualRecordId ? getRecordById(actualRecordId) : undefined),
+    [actualRecordId, getRecordById]
   );
 
   const folder = useMemo(() => {
     if (!record) return undefined;
     return getFolderById(record.folderId);
-  }, [record]);
+  }, [record, getFolderById]);
 
   const member: Member | undefined = useMemo(() => {
     if (!record) return undefined;
     if (folder?.members) {
-      return folder.members.find((m) => m.name === record.memberName);
+      const found = folder.members.find((m) => m.name === record.memberName);
+      if (found) return found;
     }
-    return mockMembers.find((m) => m.name === record.memberName);
-  }, [record, folder]);
+    return getMemberById(record.memberName.replace(/^.*-/, 'm')) || undefined;
+  }, [record, folder, getMemberById]);
 
   const statusIcon = record?.status === 'completed' ? '✅' : record?.status === 'pending' ? '⏳' : '❌';
   const statusMainText = record?.statusText || '未知状态';
@@ -112,7 +114,7 @@ const FeedbackDetailPage: React.FC = () => {
       <ScrollView scrollY className="pageContainer">
         <View className={styles.emptyState}>
           <Text className={styles.emptyIcon}>📭</Text>
-          <Text className={styles.emptyText}>未找到对应记录</Text>
+          <Text className={styles.emptyText}>未找到对应记录（id={actualRecordId}）</Text>
         </View>
       </ScrollView>
     );
@@ -178,7 +180,7 @@ const FeedbackDetailPage: React.FC = () => {
             <View className={styles.detailRow}>
               <Text className={styles.detailLabel}>操作人</Text>
               <Text className={styles.detailValue}>
-                {record.operator}（本人）
+                {record.operator}
               </Text>
             </View>
 
@@ -193,7 +195,7 @@ const FeedbackDetailPage: React.FC = () => {
               <View className={styles.detailRow}>
                 <Text className={styles.detailLabel}>权限有效期</Text>
                 <Text className={styles.detailValue}>
-                  📅 至 {record.expireAt}（剩余 {dayjs(record.expireAt).diff(dayjs(), 'day')} 天）
+                  📅 至 {record.expireAt}（剩余 {Math.max(0, dayjs(record.expireAt).diff(dayjs(), 'day'))} 天）
                 </Text>
               </View>
             )}

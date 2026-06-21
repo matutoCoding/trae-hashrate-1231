@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
-import { getFolderById } from '@/data/folders';
+import { useAppContext } from '@/store/AppContext';
 import { formatDate } from '@/utils';
 import StatusBadge from '@/components/StatusBadge';
 import SectionHeader from '@/components/SectionHeader';
@@ -14,6 +14,7 @@ type MemberFilter = 'all' | 'needReview' | 'external' | 'edit';
 
 const FolderDetailPage: React.FC = () => {
   const router = useRouter();
+  const { getFolderById, refreshKey } = useAppContext();
   const folderId = router.params.id || 'f1';
   const folder = getFolderById(folderId);
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
@@ -37,7 +38,7 @@ const FolderDetailPage: React.FC = () => {
       if (a.isExternal !== b.isExternal) return a.isExternal ? -1 : 1;
       return 0;
     });
-  }, [folder, memberFilter]);
+  }, [folder, memberFilter, refreshKey]);
 
   const handleMemberAction = (member: Member) => {
     console.log('[FolderDetail] 处理成员:', member.id, member.name);

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
-import { mockTasks } from '@/data/tasks';
+import { useAppContext } from '@/store/AppContext';
 import TaskCard from '@/components/TaskCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Task } from '@/types';
@@ -17,17 +17,19 @@ const tabs: { key: TabType; label: string }[] = [
 ];
 
 const TasksPage: React.FC = () => {
+  const { tasks, refreshKey, triggerRefresh } = useAppContext();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
 
   usePullDownRefresh(() => {
     setTimeout(() => {
+      triggerRefresh();
       Taro.stopPullDownRefresh();
       Taro.showToast({ title: '刷新成功', icon: 'success' });
     }, 800);
   });
 
   const filteredTasks = useMemo(() => {
-    let result = [...mockTasks];
+    let result = [...tasks];
     switch (activeTab) {
       case 'pending':
         result = result.filter((t) => !t.handled);
@@ -41,10 +43,10 @@ const TasksPage: React.FC = () => {
       const priorityOrder = { high: 0, medium: 1, low: 2 } as const;
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
-  }, [activeTab]);
+  }, [activeTab, tasks, refreshKey]);
 
   const stats = useMemo(() => {
-    const pending = mockTasks.filter((t) => !t.handled);
+    const pending = tasks.filter((t) => !t.handled);
     const highPriority = pending.filter((t) => t.priority === 'high').length;
     const expiringSoon = pending.filter((t) => t.expireAt).length;
     return {
@@ -52,7 +54,7 @@ const TasksPage: React.FC = () => {
       highPriority,
       expiringSoon,
     };
-  }, []);
+  }, [tasks, refreshKey]);
 
   const handleTaskAction = (task: Task) => {
     console.log('[TasksPage] 处理待办:', task.id, task.type);
@@ -81,8 +83,8 @@ const TasksPage: React.FC = () => {
               tab.key === 'pending'
                 ? stats.pendingCount
                 : tab.key === 'handled'
-                ? mockTasks.length - stats.pendingCount
-                : mockTasks.length;
+                ? tasks.length - stats.pendingCount
+                : tasks.length;
             return (
               <View
                 key={tab.key}

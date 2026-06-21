@@ -1,6 +1,6 @@
 import { Folder, Member } from '@/types';
 
-export const mockMembers: Member[] = [
+export const initialMembers: Member[] = [
   {
     id: 'm1',
     name: '张明远',
@@ -81,7 +81,7 @@ export const mockMembers: Member[] = [
   },
 ];
 
-export const mockFolders: Folder[] = [
+export const initialFolders: Folder[] = [
   {
     id: 'f1',
     name: '2026年度战略规划',
@@ -92,7 +92,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-21 16:42:00',
     status: 'danger',
     statusText: '2项权限待确认',
-    members: mockMembers.slice(0, 6),
+    members: initialMembers.slice(0, 6),
   },
   {
     id: 'f2',
@@ -104,7 +104,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-20 11:30:00',
     status: 'warning',
     statusText: '1项权限即将到期',
-    members: mockMembers.slice(2, 7),
+    members: initialMembers.slice(2, 7),
   },
   {
     id: 'f3',
@@ -116,7 +116,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-22 08:15:00',
     status: 'warning',
     statusText: '1项权限待审核',
-    members: mockMembers.slice(1, 6),
+    members: initialMembers.slice(1, 6),
   },
   {
     id: 'f4',
@@ -128,7 +128,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-18 17:00:00',
     status: 'safe',
     statusText: '权限配置正常',
-    members: mockMembers.slice(0, 4),
+    members: initialMembers.slice(0, 4),
   },
   {
     id: 'f5',
@@ -140,7 +140,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-17 14:20:00',
     status: 'safe',
     statusText: '权限配置正常',
-    members: mockMembers.slice(0, 3),
+    members: initialMembers.slice(0, 3),
   },
   {
     id: 'f6',
@@ -152,7 +152,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-21 20:00:00',
     status: 'danger',
     statusText: '3项权限风险提示',
-    members: mockMembers,
+    members: initialMembers,
   },
   {
     id: 'f7',
@@ -164,7 +164,7 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-19 09:30:00',
     status: 'safe',
     statusText: '权限配置正常',
-    members: mockMembers.slice(0, 5),
+    members: initialMembers.slice(0, 5),
   },
   {
     id: 'f8',
@@ -176,10 +176,14 @@ export const mockFolders: Folder[] = [
     lastUpdate: '2026-06-15 10:00:00',
     status: 'safe',
     statusText: '权限配置正常',
-    members: mockMembers.slice(0, 2),
+    members: initialMembers.slice(0, 2),
   },
 ];
 
-export const getFolderById = (id: string): Folder | undefined => {
-  return mockFolders.find((f) => f.id === id);
+export const mockMembers = initialMembers;
+export const mockFolders = initialFolders;
+
+export const getFolderById = (id: string, folders?: Folder[]): Folder | undefined => {
+  const list = folders || initialFolders;
+  return list.find((f) => f.id === id);
 };

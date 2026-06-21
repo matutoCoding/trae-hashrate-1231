@@ -1,6 +1,6 @@
 import { Record } from '@/types';
 
-export const mockRecords: Record[] = [
+export const initialRecords: Record[] = [
   {
     id: 'r1',
     action: 'retain',
@@ -110,3 +110,10 @@ export const mockRecords: Record[] = [
     statusText: '已生效',
   },
 ];
+
+export const mockRecords = initialRecords;
+
+export const getRecordById = (id: string, records?: Record[]): Record | undefined => {
+  const list = records || initialRecords;
+  return list.find((r) => r.id === id);
+};

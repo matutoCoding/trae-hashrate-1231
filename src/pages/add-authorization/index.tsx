@@ -2,15 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, Image, ScrollView, Input, Switch } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
-import { mockFolders, mockMembers, getFolderById } from '@/data/folders';
+import { useAppContext } from '@/store/AppContext';
 import { dayjs } from '@/utils';
 import { Member, PermissionLevel, Folder } from '@/types';
-import { useAppContext } from '@/store/AppContext';
 import styles from './index.module.scss';
 
 const AddAuthorizationPage: React.FC = () => {
   const router = useRouter();
-  const { triggerRefresh } = useAppContext();
+  const { allMembers, folders, getFolderById, addAuthorization } = useAppContext();
   const initialFolderId = router.params.folderId;
 
   const [searchText, setSearchText] = useState('');
@@ -24,15 +23,15 @@ const AddAuthorizationPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const candidateMembers = useMemo(() => {
-    if (!searchText.trim()) return mockMembers.slice(0, 6);
+    if (!searchText.trim()) return allMembers.slice(0, 6);
     const kw = searchText.trim().toLowerCase();
-    return mockMembers.filter(
+    return allMembers.filter(
       (m) =>
         m.name.toLowerCase().includes(kw) ||
         m.department.toLowerCase().includes(kw) ||
         (m.externalCompany && m.externalCompany.toLowerCase().includes(kw))
     );
-  }, [searchText]);
+  }, [searchText, allMembers]);
 
   const quickDateOptions = [
     { label: '1天', days: 1 },
@@ -78,34 +77,51 @@ const AddAuthorizationPage: React.FC = () => {
 
   const handleFolderPick = () => {
     Taro.showActionSheet({
-      itemList: mockFolders.map((f) => f.name),
+      itemList: folders.map((f) => f.name),
       success: (res) => {
-        setSelectedFolderId(mockFolders[res.tapIndex].id);
+        setSelectedFolderId(folders[res.tapIndex].id);
       },
     });
   };
 
   const canSubmit = selectedMembers.length > 0 && !!expireDate;
 
+  const validateBeforeSubmit = (): boolean => {
+    if (selectedMembers.length === 0) {
+      Taro.showToast({ title: '请至少选择一位成员', icon: 'none' });
+      return false;
+    }
+    if (!expireDate) {
+      Taro.showToast({ title: '请选择授权有效期', icon: 'none' });
+      return false;
+    }
+    const daysUntil = dayjs(expireDate).diff(dayjs(), 'day');
+    if (daysUntil <= 0) {
+      Taro.showToast({ title: '有效期需晚于今天', icon: 'none' });
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
+    if (!validateBeforeSubmit()) return;
     setSubmitting(true);
 
-    console.log('[AddAuthorization] 新增授权:', {
-      members: selectedMembers,
+    addAuthorization({
       folderId: selectedFolderId,
+      memberIds: selectedMembers,
       permission,
-      expireDate,
+      expireAt: expireDate,
       notifyBeforeExpire,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     setSubmitting(false);
-    triggerRefresh();
 
     Taro.showToast({
-      title: '授权已提交',
+      title: '授权已生效',
       icon: 'success',
       duration: 1500,
     });
