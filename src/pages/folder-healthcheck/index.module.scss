@@ -119,6 +119,8 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
 }
 
 .groupIcon {
@@ -153,6 +155,31 @@
     background: rgba(37, 99, 235, 0.1);
     color: $color-primary;
   }
+}
+
+.groupActions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.applyTemplateBtn {
+  padding: 8rpx 20rpx;
+  border-radius: $radius-sm;
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  box-shadow: 0 4rpx 12rpx rgba(139, 92, 246, 0.25);
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+}
+
+.applyTemplateBtnText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
 }
 
 .groupSelectAll {
@@ -220,6 +247,7 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
+  flex-wrap: wrap;
 }
 
 .cardName {
@@ -246,6 +274,43 @@
 .cardDept {
   font-size: $font-size-sm;
   color: $color-text-secondary;
+}
+
+.cardTemplateRow {
+  margin-top: 2rpx;
+}
+
+.templateTag {
+  display: inline-block;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1.4;
+
+  &.placeholder {
+    background: $color-bg-page;
+    color: $color-text-tertiary;
+    border: 1rpx dashed $color-border;
+  }
+
+  &.revoke {
+    background: $color-status-danger-bg;
+    color: $color-status-danger;
+    border: 1rpx solid rgba(239, 68, 68, 0.2);
+  }
+
+  &.retain {
+    background: $color-status-warning-bg;
+    color: $color-status-warning;
+    border: 1rpx solid rgba(245, 158, 11, 0.2);
+  }
+
+  &.down {
+    background: rgba(37, 99, 235, 0.1);
+    color: $color-primary;
+    border: 1rpx solid rgba(37, 99, 235, 0.2);
+  }
 }
 
 .cardMeta {
@@ -350,6 +415,29 @@
   font-size: $font-size-sm;
   color: $color-text-tertiary;
   padding: 4rpx 16rpx;
+}
+
+.templateSubmitBtn {
+  width: 100%;
+  height: 80rpx;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  box-shadow: 0 6rpx 20rpx rgba(139, 92, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  .batchBtnText {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-white;
+  }
 }
 
 .batchActions {

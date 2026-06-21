@@ -4,8 +4,27 @@ import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppContext } from '@/store/AppContext';
 import { dayjs, getDaysUntilExpire, getPermissionText, getPermissionColor } from '@/utils';
-import { Member, ActionType } from '@/types';
+import { Member, ActionType, PermissionLevel } from '@/types';
 import styles from './index.module.scss';
+
+type TemplateId = 'external-revoke' | 'expire-retain' | 'inactive-down' | 'none';
+
+interface TemplateConfig {
+  templateId: TemplateId;
+  templateUsedText: string;
+  action: ActionType;
+  expireAt?: string;
+  overridePermission?: PermissionLevel;
+  colorClass: string;
+}
+
+interface TemplateOverride {
+  templateId: TemplateId;
+  action: ActionType;
+  expireAt?: string;
+  overridePermission?: PermissionLevel;
+  templateUsedText: string;
+}
 
 interface RiskGroup {
   key: string;
@@ -13,7 +32,61 @@ interface RiskGroup {
   icon: string;
   riskLevel: 'danger' | 'warning' | 'info';
   members: Member[];
+  defaultTemplate: TemplateConfig;
 }
+
+const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
+  externalEdit: {
+    templateId: 'external-revoke',
+    templateUsedText: '外部编辑收回模板',
+    action: 'revoke',
+    colorClass: 'revoke',
+  },
+  expiringSoon: {
+    templateId: 'expire-retain',
+    templateUsedText: '快到期续期模板',
+    action: 'retain',
+    expireAt: dayjs().add(30, 'day').format('YYYY-MM-DD'),
+    colorClass: 'retain',
+  },
+  longInactive: {
+    templateId: 'inactive-down',
+    templateUsedText: '长期未访问降级模板',
+    action: 'retain',
+    overridePermission: 'view',
+    colorClass: 'down',
+  },
+};
+
+const TEMPLATE_OPTIONS: Array<{ key: string; label: string; template: TemplateConfig | null }> = [
+  {
+    key: 'external-revoke',
+    label: '收回(外部)',
+    template: DEFAULT_TEMPLATES.externalEdit,
+  },
+  {
+    key: 'expire-retain',
+    label: '续期30天',
+    template: DEFAULT_TEMPLATES.expiringSoon,
+  },
+  {
+    key: 'inactive-down',
+    label: '降级到查看',
+    template: DEFAULT_TEMPLATES.longInactive,
+  },
+  {
+    key: 'clear',
+    label: '清除模板',
+    template: null,
+  },
+];
+
+const getTemplateColorClass = (templateId: TemplateId): string => {
+  if (templateId === 'external-revoke') return 'revoke';
+  if (templateId === 'expire-retain') return 'retain';
+  if (templateId === 'inactive-down') return 'down';
+  return '';
+};
 
 const FolderHealthcheckPage: React.FC = () => {
   const router = useRouter();
@@ -22,6 +95,7 @@ const FolderHealthcheckPage: React.FC = () => {
   const folder = getFolderById(folderId);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [templateOverrides, setTemplateOverrides] = useState<Map<string, TemplateOverride>>(new Map());
 
   const riskGroups = useMemo<RiskGroup[]>(() => {
     if (!folder?.members) return [];
@@ -43,6 +117,7 @@ const FolderHealthcheckPage: React.FC = () => {
         icon: '🌐',
         riskLevel: 'danger',
         members: externalEdit,
+        defaultTemplate: DEFAULT_TEMPLATES.externalEdit,
       },
       {
         key: 'expiringSoon',
@@ -50,6 +125,7 @@ const FolderHealthcheckPage: React.FC = () => {
         icon: '⏰',
         riskLevel: 'warning',
         members: expiringSoon,
+        defaultTemplate: DEFAULT_TEMPLATES.expiringSoon,
       },
       {
         key: 'longInactive',
@@ -57,6 +133,7 @@ const FolderHealthcheckPage: React.FC = () => {
         icon: '💤',
         riskLevel: 'info',
         members: longInactive,
+        defaultTemplate: DEFAULT_TEMPLATES.longInactive,
       },
     ];
   }, [folder, refreshKey]);
@@ -115,6 +192,69 @@ const FolderHealthcheckPage: React.FC = () => {
     });
   }, []);
 
+  const applyTemplateToGroup = useCallback((group: RiskGroup) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      group.members.forEach((m) => next.add(m.id));
+      return next;
+    });
+
+    setTemplateOverrides((prev) => {
+      const next = new Map(prev);
+      const tpl = group.defaultTemplate;
+      group.members.forEach((m) => {
+        next.set(m.id, {
+          templateId: tpl.templateId,
+          action: tpl.action,
+          expireAt: tpl.expireAt,
+          overridePermission: tpl.overridePermission,
+          templateUsedText: tpl.templateUsedText,
+        });
+      });
+      return next;
+    });
+
+    Taro.showToast({
+      title: `已套用「${group.defaultTemplate.templateUsedText}」`,
+      icon: 'success',
+    });
+  }, []);
+
+  const showMemberTemplateSelector = useCallback((member: Member, e: React.MouseEvent) => {
+    e.stopPropagation();
+    Taro.showActionSheet({
+      itemList: TEMPLATE_OPTIONS.map((opt) => opt.label),
+      success: (res) => {
+        const selected = TEMPLATE_OPTIONS[res.tapIndex];
+        if (selected.key === 'clear') {
+          setTemplateOverrides((prev) => {
+            const next = new Map(prev);
+            next.delete(member.id);
+            return next;
+          });
+        } else if (selected.template) {
+          const tpl = selected.template;
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.add(member.id);
+            return next;
+          });
+          setTemplateOverrides((prev) => {
+            const next = new Map(prev);
+            next.set(member.id, {
+              templateId: tpl.templateId,
+              action: tpl.action,
+              expireAt: tpl.expireAt,
+              overridePermission: tpl.overridePermission,
+              templateUsedText: tpl.templateUsedText,
+            });
+            return next;
+          });
+        }
+      },
+    });
+  }, []);
+
   const handleBatchAction = useCallback(
     (action: ActionType) => {
       const selectedMembers = (folder?.members || []).filter((m) =>
@@ -169,6 +309,70 @@ const FolderHealthcheckPage: React.FC = () => {
     [folder, folderId, selectedIds, batchPermissionAction]
   );
 
+  const handleTemplateBatchSubmit = useCallback(() => {
+    if (templateOverrides.size === 0) {
+      Taro.showToast({ title: '暂无模板待提交', icon: 'none' });
+      return;
+    }
+
+    const membersMap = new Map((folder?.members || []).map((m) => [m.id, m]));
+
+    const groupsByTemplate = new Map<TemplateId, Array<{ id: string; name: string }>>();
+    templateOverrides.forEach((override, memberId) => {
+      const member = membersMap.get(memberId);
+      if (!member) return;
+      const list = groupsByTemplate.get(override.templateId) || [];
+      list.push({ id: memberId, name: member.name });
+      groupsByTemplate.set(override.templateId, list);
+    });
+
+    const confirmContent = Array.from(groupsByTemplate.entries())
+      .map(([tplId, list]) => {
+        const tplInfo = TEMPLATE_OPTIONS.find((o) => o.key === tplId);
+        return `${tplInfo?.label || tplId}：${list.length}人`;
+      })
+      .join('\n');
+
+    Taro.showModal({
+      title: `按模板批量提交 ${templateOverrides.size}人`,
+      content: confirmContent,
+      confirmText: '确认提交',
+      confirmColor: '#2563EB',
+      success: (res) => {
+        if (res.confirm) {
+          groupsByTemplate.forEach((list, tplId) => {
+            const overrideSample = Array.from(templateOverrides.values()).find(
+              (o) => o.templateId === tplId
+            );
+            if (!overrideSample) return;
+
+            const ids = list.map((x) => x.id);
+            const names = list.map((x) => x.name);
+
+            batchPermissionAction({
+              folderId,
+              memberIds: ids,
+              memberNames: names,
+              action: overrideSample.action,
+              reason: `按模板处理：${overrideSample.templateUsedText}`,
+              expireAt: overrideSample.expireAt,
+              overridePermission: overrideSample.overridePermission,
+              templateUsed: overrideSample.templateId,
+              templateUsedText: overrideSample.templateUsedText,
+            });
+          });
+
+          setTemplateOverrides(new Map());
+          setSelectedIds(new Set());
+          Taro.showToast({
+            title: `已提交 ${templateOverrides.size} 条模板处理`,
+            icon: 'success',
+          });
+        }
+      },
+    });
+  }, [templateOverrides, folder, folderId, batchPermissionAction]);
+
   const renderMemberCard = (member: Member) => {
     const permColor = getPermissionColor(member.permission);
     const isSelected = selectedIds.has(member.id);
@@ -176,6 +380,7 @@ const FolderHealthcheckPage: React.FC = () => {
       ? getDaysUntilExpire(member.expireAt)
       : null;
     const inactiveDays = dayjs().diff(dayjs(member.lastAccess), 'day');
+    const templateOverride = templateOverrides.get(member.id);
 
     return (
       <View
@@ -207,6 +412,25 @@ const FolderHealthcheckPage: React.FC = () => {
             </Text>
           </View>
           <Text className={styles.cardDept}>{member.department}</Text>
+          <View
+            className={styles.cardTemplateRow}
+            onClick={(e) => showMemberTemplateSelector(member, e)}
+          >
+            {templateOverride ? (
+              <Text
+                className={classnames(
+                  styles.templateTag,
+                  styles[getTemplateColorClass(templateOverride.templateId)]
+                )}
+              >
+                📋 {templateOverride.templateUsedText}
+              </Text>
+            ) : (
+              <Text className={classnames(styles.templateTag, styles.placeholder)}>
+                + 选择模板
+              </Text>
+            )}
+          </View>
           <View className={styles.cardMeta}>
             {daysUntilExpire !== null && (
               <Text
@@ -247,16 +471,29 @@ const FolderHealthcheckPage: React.FC = () => {
       <View key={group.key} className={styles.riskGroup}>
         <View
           className={classnames(styles.groupHeader, levelClass)}
-          onClick={() => toggleGroup(group)}
         >
-          <View className={styles.groupTitleRow}>
+          <View className={styles.groupTitleRow} onClick={() => toggleGroup(group)}>
             <Text className={styles.groupIcon}>{group.icon}</Text>
             <Text className={styles.groupTitle}>{group.title}</Text>
             <Text className={styles.groupCount}>{group.members.length}人</Text>
           </View>
-          <View className={styles.groupSelectAll}>
-            <Checkbox checked={allSelected} color="#2563EB" />
-            <Text className={styles.selectAllText}>全选</Text>
+          <View className={styles.groupActions}>
+            <View
+              className={styles.applyTemplateBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                applyTemplateToGroup(group);
+              }}
+            >
+              <Text className={styles.applyTemplateBtnText}>📋 套用模板</Text>
+            </View>
+            <View
+              className={styles.groupSelectAll}
+              onClick={() => toggleGroup(group)}
+            >
+              <Checkbox checked={allSelected} color="#2563EB" />
+              <Text className={styles.selectAllText}>全选</Text>
+            </View>
           </View>
         </View>
         <View className={styles.groupMembers}>
@@ -276,6 +513,8 @@ const FolderHealthcheckPage: React.FC = () => {
       </ScrollView>
     );
   }
+
+  const showBottomBar = selectedIds.size > 0 || templateOverrides.size > 0;
 
   return (
     <>
@@ -323,22 +562,37 @@ const FolderHealthcheckPage: React.FC = () => {
           </View>
         )}
 
-        <View style={{ height: '160rpx' }} />
+        <View style={{ height: '240rpx' }} />
       </ScrollView>
 
-      {selectedIds.size > 0 && (
+      {showBottomBar && (
         <View className={styles.bottomBar}>
           <View className={styles.selectedInfo}>
             <Text className={styles.selectedCount}>
-              已选择 {selectedIds.size} 人
+              {templateOverrides.size > 0
+                ? `已套用模板 ${templateOverrides.size} 人`
+                : `已选择 ${selectedIds.size} 人`}
             </Text>
             <Text
               className={styles.clearBtn}
-              onClick={() => setSelectedIds(new Set())}
+              onClick={() => {
+                setSelectedIds(new Set());
+                setTemplateOverrides(new Map());
+              }}
             >
               清空
             </Text>
           </View>
+          {templateOverrides.size > 0 && (
+            <View
+              className={classnames(styles.batchBtn, styles.templateSubmitBtn)}
+              onClick={handleTemplateBatchSubmit}
+            >
+              <Text className={styles.batchBtnText}>
+                🚀 按模板批量提交 {templateOverrides.size}人
+              </Text>
+            </View>
+          )}
           <View className={styles.batchActions}>
             <View
               className={classnames(styles.batchBtn, styles.revoke)}

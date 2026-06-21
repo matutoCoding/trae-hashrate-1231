@@ -164,7 +164,7 @@ const RecordsPage: React.FC = () => {
               className={classnames(styles.folderSelect, folderId && styles.folderActive)}
               onClick={handleFolderSelect}
             >
-              <Text>� {selectedFolderName}</Text>
+              <Text>📁 {selectedFolderName}</Text>
             </View>
           </View>
           {hasActiveFilter && (
@@ -172,6 +172,15 @@ const RecordsPage: React.FC = () => {
               <Text>清除筛选</Text>
             </View>
           )}
+        </View>
+
+        <View
+          className={styles.summaryEntryBtn}
+          onClick={() => Taro.navigateTo({ url: '/pages/records-summary/index' })}
+        >
+          <Text className={styles.summaryEntryIcon}>📊</Text>
+          <Text className={styles.summaryEntryText}>生成复盘汇总</Text>
+          <Text className={styles.summaryEntryArrow}>›</Text>
         </View>
       </View>
 

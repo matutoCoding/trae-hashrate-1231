@@ -60,6 +60,8 @@ export interface Record {
   createdAt: string;
   status: 'pending' | 'completed' | 'rejected';
   statusText: string;
+  templateUsed?: 'external-revoke' | 'expire-retain' | 'inactive-down' | 'none';
+  templateUsedText?: string;
 }
 
 export interface UserProfile {

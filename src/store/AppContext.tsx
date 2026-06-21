@@ -5,6 +5,8 @@ import { initialTasks } from '@/data/tasks';
 import { initialRecords } from '@/data/records';
 import { dayjs, generateId, getDaysUntilExpire } from '@/utils';
 
+type TemplateType = 'external-revoke' | 'expire-retain' | 'inactive-down' | 'none';
+
 interface AppContextType {
   user: UserProfile;
   folders: Folder[];
@@ -25,6 +27,9 @@ interface AppContextType {
     action: ActionType;
     reason: string;
     expireAt?: string;
+    overridePermission?: PermissionLevel;
+    templateUsed?: TemplateType;
+    templateUsedText?: string;
   }) => void;
   addAuthorization: (payload: {
     folderId: string;
@@ -40,10 +45,15 @@ interface AppContextType {
     action: ActionType;
     reason: string;
     expireAt?: string;
+    overridePermission?: PermissionLevel;
+    templateUsed?: TemplateType;
+    templateUsedText?: string;
   }) => void;
   toggleTaskNotification: (taskId: string, enabled: boolean) => void;
   recordsFilter: RecordsFilterState;
   setRecordsFilter: (filter: RecordsFilterState) => void;
+  folderDetailSelectedMemberId: string;
+  setFolderDetailSelectedMemberId: (id: string) => void;
 }
 
 export interface RecordsFilterState {
@@ -115,6 +125,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     folderId: '',
     memberName: '',
   });
+  const [folderDetailSelectedMemberId, setFolderDetailSelectedMemberId] = useState<string>('');
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -154,6 +165,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       action,
       reason,
       expireAt,
+      overridePermission,
+      templateUsed,
+      templateUsedText,
     }: {
       taskId?: string;
       folderId: string;
@@ -162,6 +176,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       action: ActionType;
       reason: string;
       expireAt?: string;
+      overridePermission?: PermissionLevel;
+      templateUsed?: TemplateType;
+      templateUsedText?: string;
     }) => {
       setTasks((prev) =>
         prev.map((t) => {
@@ -182,6 +199,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 ...m,
                 needReview: false,
                 expireAt: expireAt || m.expireAt,
+                permission: overridePermission || m.permission,
               };
             }
             if (action === 'revoke') {
@@ -201,7 +219,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const newRecord: Record = {
         id: 'r' + generateId(),
         action,
-        actionText: actionTextMap[action],
+        actionText: templateUsed === 'inactive-down'
+          ? '降为查看权限'
+          : actionTextMap[action],
         folderId,
         folderName: folder?.name || '未知文件夹',
         memberName,
@@ -211,6 +231,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         status: action === 'feedback' ? 'pending' : 'completed',
         statusText: action === 'feedback' ? '处理中' : '已生效',
+        templateUsed,
+        templateUsedText,
       };
       setRecords((prev) => [newRecord, ...prev]);
 
@@ -227,6 +249,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       action,
       reason,
       expireAt,
+      overridePermission,
+      templateUsed,
+      templateUsedText,
     }: {
       folderId: string;
       memberIds: string[];
@@ -234,6 +259,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       action: ActionType;
       reason: string;
       expireAt?: string;
+      overridePermission?: PermissionLevel;
+      templateUsed?: TemplateType;
+      templateUsedText?: string;
     }) => {
       const midSet = new Set(memberIds);
 
@@ -251,7 +279,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const newMembers = (folder.members || []).map((m) => {
             if (!midSet.has(m.id)) return m;
             if (action === 'retain') {
-              return { ...m, needReview: false, expireAt: expireAt || m.expireAt };
+              return {
+                ...m,
+                needReview: false,
+                expireAt: expireAt || m.expireAt,
+                permission: overridePermission || m.permission,
+              };
             }
             if (action === 'revoke') {
               return { ...m, needReview: false, permission: 'view' as PermissionLevel };
@@ -270,7 +303,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const newRecords: Record[] = memberIds.map((mid, idx) => ({
         id: 'r' + generateId() + idx,
         action,
-        actionText: actionTextMap[action],
+        actionText: templateUsed === 'inactive-down'
+          ? '降为查看权限'
+          : actionTextMap[action],
         folderId,
         folderName: folder?.name || '未知文件夹',
         memberName: memberNames[idx] || '未知成员',
@@ -280,6 +315,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         status: action === 'feedback' ? 'pending' as const : 'completed' as const,
         statusText: action === 'feedback' ? '处理中' : '已生效',
+        templateUsed,
+        templateUsedText,
       }));
       setRecords((prev) => [...newRecords, ...prev]);
 
@@ -342,11 +379,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (notifyBeforeExpire) {
         const folder = folders.find((f) => f.id === folderId);
-        const daysUntil = dayjs(expireAt).diff(dayjs(), 'day');
         const newTasks: Task[] = resolvedMembers.map((m, idx) => ({
           id: 't' + generateId() + idx,
-          type: daysUntil <= 3 ? 'expire' : 'review',
-          typeText: daysUntil <= 0 ? '今天到期' : daysUntil <= 3 ? '即将到期' : '权限审核',
+          type: 'expire',
+          typeText: '即将到期',
           folderId,
           folderName: folder?.name || '未知文件夹',
           memberId: m.id,
@@ -354,7 +390,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           memberAvatar: m.avatar,
           description: `${m.name} 的临时授权将于 ${expireAt} 到期，请确认是否续期`,
           createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-          priority: daysUntil <= 0 ? 'high' : daysUntil <= 3 ? 'high' : daysUntil <= 7 ? 'medium' : 'low',
+          priority: 'medium',
           handled: false,
           expireAt,
           notifyEnabled: true,
@@ -381,6 +417,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
           status: 'completed' as const,
           statusText: '已生效',
+          templateUsed: 'none',
+          templateUsedText: '手动配置',
         };
       });
       setRecords((prev) => [...newRecords, ...prev]);
@@ -410,6 +448,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         toggleTaskNotification,
         recordsFilter,
         setRecordsFilter,
+        folderDetailSelectedMemberId,
+        setFolderDetailSelectedMemberId,
       }}
     >
       {children}

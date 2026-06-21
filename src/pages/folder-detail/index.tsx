@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import { View, Text, ScrollView, Input, Image } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppContext } from '@/store/AppContext';
-import { formatDate } from '@/utils';
+import { formatDate, formatRelativeTime, getPermissionText, getPermissionColor } from '@/utils';
 import StatusBadge from '@/components/StatusBadge';
 import SectionHeader from '@/components/SectionHeader';
-import MemberItem from '@/components/MemberItem';
 import { Member } from '@/types';
 import styles from './index.module.scss';
 
@@ -14,10 +13,11 @@ type MemberFilter = 'all' | 'needReview' | 'external' | 'edit';
 
 const FolderDetailPage: React.FC = () => {
   const router = useRouter();
-  const { getFolderById, refreshKey } = useAppContext();
+  const { getFolderById, refreshKey, folderDetailSelectedMemberId, setFolderDetailSelectedMemberId } = useAppContext();
   const folderId = router.params.id || 'f1';
   const folder = getFolderById(folderId);
   const [memberFilter, setMemberFilter] = useState<MemberFilter>('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
 
   const filteredMembers = useMemo(() => {
     if (!folder?.members) return [];
@@ -33,17 +33,29 @@ const FolderDetailPage: React.FC = () => {
         result = result.filter((m) => m.permission === 'edit');
         break;
     }
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.trim().toLowerCase();
+      result = result.filter((m) => m.name.toLowerCase().includes(keyword));
+    }
     return result.sort((a, b) => {
       if (a.needReview !== b.needReview) return a.needReview ? -1 : 1;
       if (a.isExternal !== b.isExternal) return a.isExternal ? -1 : 1;
       return 0;
     });
-  }, [folder, memberFilter, refreshKey]);
+  }, [folder, memberFilter, searchKeyword, refreshKey]);
 
   const handleMemberAction = (member: Member) => {
     console.log('[FolderDetail] 处理成员:', member.id, member.name);
     Taro.navigateTo({
       url: `/pages/permission-action/index?folderId=${folderId}&memberId=${member.id}`,
+    });
+  };
+
+  const handleTimeline = (member: Member, e: any) => {
+    e.stopPropagation && e.stopPropagation();
+    setFolderDetailSelectedMemberId(member.id);
+    Taro.navigateTo({
+      url: `/pages/member-timeline/index?folderId=${folderId}&memberId=${member.id}`,
     });
   };
 
@@ -140,6 +152,24 @@ const FolderDetailPage: React.FC = () => {
 
       <SectionHeader title="成员权限" desc={`${filteredMembers.length} 人`} />
 
+      <View className={styles.searchBar}>
+        <View className={styles.searchInputWrap}>
+          <Text className={styles.searchIcon}>🔍</Text>
+          <Input
+            className={styles.searchInput}
+            placeholder="搜索成员姓名"
+            placeholderClass={styles.searchPlaceholder}
+            value={searchKeyword}
+            onInput={(e) => setSearchKeyword(e.detail.value)}
+          />
+          {searchKeyword && (
+            <View className={styles.searchClear} onClick={() => setSearchKeyword('')}>
+              <Text>✕</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
       <View className={styles.memberFilter}>
         {[
           { key: 'all' as const, label: '全部' },
@@ -162,15 +192,88 @@ const FolderDetailPage: React.FC = () => {
 
       <View className={styles.memberListCard}>
         {filteredMembers.length > 0 ? (
-          filteredMembers.map((member) => (
-            <MemberItem
-              key={member.id}
-              member={member}
-              showAction={member.needReview || member.isExternal}
-              onAction={handleMemberAction}
-              actionText={member.needReview ? '立即审核' : '查看详情'}
-            />
-          ))
+          filteredMembers.map((member) => {
+            const permColor = getPermissionColor(member.permission);
+            const isSelected = folderDetailSelectedMemberId === member.id;
+            return (
+              <View
+                key={member.id}
+                className={classnames(
+                  styles.memberCard,
+                  member.needReview && styles.needReview,
+                  isSelected && styles.selectedMember
+                )}
+              >
+                <View
+                  className={styles.timelineBtn}
+                  onClick={(e) => handleTimeline(member, e)}
+                >
+                  <Text>📜</Text>
+                  <Text className={styles.timelineBtnText}>变更记录</Text>
+                </View>
+
+                <View className={styles.memberCardInner}>
+                  <View className={styles.avatarWrap}>
+                    <Image
+                      className={styles.avatar}
+                      src={member.avatar}
+                      mode="aspectFill"
+                    />
+                    {member.isExternal && <View className={styles.externalBadge}>外</View>}
+                    {member.needReview && <View className={styles.reviewDot} />}
+                  </View>
+
+                  <View className={styles.info}>
+                    <View className={styles.nameRow}>
+                      <Text className={styles.name}>{member.name}</Text>
+                      {member.isExternal && (
+                        <View className={styles.externalTag}>
+                          <Text className={styles.externalTagText}>
+                            {member.externalCompany || '外部协作'}
+                          </Text>
+                        </View>
+                      )}
+                      <View
+                        className={styles.permTag}
+                        style={{ background: permColor.bg }}
+                      >
+                        <Text
+                          className={styles.permTagText}
+                          style={{ color: permColor.text }}
+                        >
+                          {getPermissionText(member.permission)}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text className={styles.dept}>{member.department}</Text>
+
+                    <View className={styles.meta}>
+                      <Text className={styles.metaText}>
+                        最近访问：{formatRelativeTime(member.lastAccess)}
+                      </Text>
+                      {member.expireAt && (
+                        <Text className={classnames(styles.metaText, styles.expireText)}>
+                          有效期至：{member.expireAt}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {(member.needReview || member.isExternal) && (
+                    <View
+                      className={styles.actionBtn}
+                      onClick={() => handleMemberAction(member)}
+                    >
+                      <Text className={styles.actionText}>
+                        {member.needReview ? '立即审核' : '查看详情'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          })
         ) : (
           <View className={styles.emptyState}>
             <Text className={styles.emptyIcon}>👥</Text>

@@ -26,7 +26,7 @@ const urgencyChips: { key: UrgencyType; label: string }[] = [
 ];
 
 const getUrgencyCategory = (task: Task): UrgencyType | null => {
-  if (!task.expireAt || task.handled) return null;
+  if (task.type !== 'expire' || task.notifyEnabled === false || !task.expireAt || task.handled) return null;
   const daysLeft = getDaysUntilExpire(task.expireAt);
   if (daysLeft <= 0) return 'today';
   if (daysLeft <= 3) return '3day';
@@ -48,7 +48,7 @@ const TasksPage: React.FC = () => {
   });
 
   const pendingExpireTasks = useMemo(() => {
-    return tasks.filter((t) => !t.handled && t.expireAt);
+    return tasks.filter((t) => !t.handled && t.type === 'expire' && t.notifyEnabled !== false);
   }, [tasks, refreshKey]);
 
   const urgencyCounts = useMemo(() => {
@@ -73,6 +73,7 @@ const TasksPage: React.FC = () => {
 
     if (activeTab === 'pending' && activeUrgency !== 'all') {
       result = result.filter((t) => {
+        if (t.type !== 'expire' || t.notifyEnabled === false) return false;
         const cat = getUrgencyCategory(t);
         if (activeUrgency === 'today') return cat === 'today';
         if (activeUrgency === '3day') return cat === 'today' || cat === '3day';
@@ -92,7 +93,7 @@ const TasksPage: React.FC = () => {
     const pending = tasks.filter((t) => !t.handled);
     const highPriority = pending.filter((t) => t.priority === 'high').length;
     const expiringSoon = pending.filter(
-      (t) => t.expireAt && t.notifyEnabled !== false
+      (t) => t.type === 'expire' && t.notifyEnabled !== false
     ).length;
     return {
       pendingCount: pending.length,

@@ -189,6 +189,41 @@
   }
 }
 
+.summaryEntryBtn {
+  margin-top: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(79, 70, 229, 0.08) 100%);
+  border: 2rpx solid rgba(37, 99, 235, 0.2);
+  border-radius: $radius-lg;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(79, 70, 229, 0.14) 100%);
+  }
+}
+
+.summaryEntryIcon {
+  font-size: 36rpx;
+}
+
+.summaryEntryText {
+  flex: 1;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+}
+
+.summaryEntryArrow {
+  font-size: $font-size-xl;
+  color: $color-primary;
+  font-weight: $font-weight-bold;
+  opacity: 0.6;
+}
+
 .listWrap {
   padding-top: $spacing-sm;
 }
