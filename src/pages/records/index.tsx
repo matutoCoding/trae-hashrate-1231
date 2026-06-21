@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, Input } from '@tarojs/components';
 import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppContext } from '@/store/AppContext';
@@ -17,9 +17,16 @@ const filters: { key: FilterType; label: string; icon: string }[] = [
 ];
 
 const RecordsPage: React.FC = () => {
-  const { records, refreshKey, triggerRefresh } = useAppContext();
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [timeRange, setTimeRange] = useState('近30天');
+  const {
+    records,
+    folders,
+    refreshKey,
+    triggerRefresh,
+    recordsFilter,
+    setRecordsFilter,
+  } = useAppContext();
+
+  const { actionType, folderId, memberName } = recordsFilter;
 
   usePullDownRefresh(() => {
     setTimeout(() => {
@@ -31,13 +38,22 @@ const RecordsPage: React.FC = () => {
 
   const filteredRecords = useMemo(() => {
     let result = [...records];
-    if (activeFilter !== 'all') {
-      result = result.filter((r) => r.action === activeFilter);
+    if (actionType !== 'all') {
+      result = result.filter((r) => r.action === actionType);
+    }
+    if (folderId) {
+      result = result.filter((r) => r.folderId === folderId);
+    }
+    if (memberName.trim()) {
+      const keyword = memberName.trim().toLowerCase();
+      result = result.filter((r) =>
+        r.memberName.toLowerCase().includes(keyword)
+      );
     }
     return result.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [activeFilter, records, refreshKey]);
+  }, [actionType, folderId, memberName, records, refreshKey]);
 
   const summary = useMemo(() => {
     return {
@@ -47,11 +63,41 @@ const RecordsPage: React.FC = () => {
     };
   }, [records, refreshKey]);
 
-  const handleTimeChange = () => {
-    const options = ['近7天', '近30天', '近90天', '全部'];
-    const currentIndex = options.indexOf(timeRange);
-    const nextIndex = (currentIndex + 1) % options.length;
-    setTimeRange(options[nextIndex]);
+  const selectedFolderName = useMemo(() => {
+    if (!folderId) return '全部文件夹';
+    const folder = folders.find((f) => f.id === folderId);
+    return folder ? folder.name : '全部文件夹';
+  }, [folderId, folders]);
+
+  const hasActiveFilter = actionType !== 'all' || folderId !== '' || memberName.trim() !== '';
+
+  const handleFolderSelect = () => {
+    const folderNames = ['全部文件夹', ...folders.map((f) => f.name)];
+    Taro.showActionSheet({
+      itemList: folderNames,
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          setRecordsFilter({ ...recordsFilter, folderId: '' });
+        } else {
+          const selected = folders[res.tapIndex - 1];
+          if (selected) {
+            setRecordsFilter({ ...recordsFilter, folderId: selected.id });
+          }
+        }
+      },
+    });
+  };
+
+  const handleActionTypeChange = (key: FilterType) => {
+    setRecordsFilter({ ...recordsFilter, actionType: key });
+  };
+
+  const handleMemberNameInput = (value: string) => {
+    setRecordsFilter({ ...recordsFilter, memberName: value });
+  };
+
+  const handleClearFilter = () => {
+    setRecordsFilter({ actionType: 'all', folderId: '', memberName: '' });
   };
 
   return (
@@ -94,18 +140,38 @@ const RecordsPage: React.FC = () => {
               key={f.key}
               className={classnames(
                 styles.filterChip,
-                activeFilter === f.key && styles.active
+                actionType === f.key && styles.active
               )}
-              onClick={() => setActiveFilter(f.key)}
+              onClick={() => handleActionTypeChange(f.key)}
             >
               <Text>
                 {f.icon} {f.label}
               </Text>
             </View>
           ))}
-          <View className={styles.timeSelect} onClick={handleTimeChange}>
-            <Text>📅 {timeRange}</Text>
+        </View>
+
+        <View className={styles.filterBar}>
+          <View className={styles.searchRow}>
+            <Input
+              className={styles.searchInput}
+              placeholder="搜索成员姓名"
+              placeholderClass={styles.searchPlaceholder}
+              value={memberName}
+              onInput={(e) => handleMemberNameInput(e.detail.value)}
+            />
+            <View
+              className={classnames(styles.folderSelect, folderId && styles.folderActive)}
+              onClick={handleFolderSelect}
+            >
+              <Text>� {selectedFolderName}</Text>
+            </View>
           </View>
+          {hasActiveFilter && (
+            <View className={styles.clearFilter} onClick={handleClearFilter}>
+              <Text>清除筛选</Text>
+            </View>
+          )}
         </View>
       </View>
 

@@ -53,6 +53,12 @@ const FolderDetailPage: React.FC = () => {
     });
   };
 
+  const handleHealthCheck = () => {
+    Taro.navigateTo({
+      url: `/pages/folder-healthcheck/index?folderId=${folderId}`,
+    });
+  };
+
   if (!folder) {
     return (
       <ScrollView scrollY className="pageContainer">
@@ -123,9 +129,12 @@ const FolderDetailPage: React.FC = () => {
           <Text>➕</Text>
           <Text className={styles.actionBtnText}>新增临时授权</Text>
         </View>
-        <View className={classnames(styles.actionBtn, styles.secondary)}>
-          <Text>📤</Text>
-          <Text className={styles.actionBtnText}>导出成员清单</Text>
+        <View
+          className={classnames(styles.actionBtn, styles.secondary)}
+          onClick={handleHealthCheck}
+        >
+          <Text>🩺</Text>
+          <Text className={styles.actionBtnText}>权限体检</Text>
         </View>
       </View>
 

@@ -118,6 +118,77 @@
   white-space: nowrap;
 }
 
+.filterBar {
+  margin-bottom: $spacing-md;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.searchInput {
+  flex: 1;
+  height: $button-height-md;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: 0 $spacing-lg;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  transition: border-color $transition-base;
+
+  &:focus {
+    border-color: $color-primary;
+  }
+}
+
+.searchPlaceholder {
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
+
+.folderSelect {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 $spacing-lg;
+  height: $button-height-md;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  box-shadow: $shadow-card;
+  white-space: nowrap;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &.folderActive {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+    border-color: $color-primary;
+    color: $color-primary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.clearFilter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: $spacing-sm;
+  padding: 8rpx 24rpx;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  color: $color-primary;
+  background: rgba(37, 99, 235, 0.06);
+  transition: background $transition-base;
+
+  &:active {
+    background: rgba(37, 99, 235, 0.12);
+  }
+}
+
 .listWrap {
   padding-top: $spacing-sm;
 }

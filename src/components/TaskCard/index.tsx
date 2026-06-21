@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image } from '@tarojs/components';
+import { View, Text, Image, Switch } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import { Task } from '@/types';
@@ -9,6 +9,7 @@ import styles from './index.module.scss';
 interface TaskCardProps {
   task: Task;
   onAction?: (task: Task) => void;
+  onToggleNotification?: (taskId: string, enabled: boolean) => void;
 }
 
 const typeConfig: Record<string, { icon: string; bg: string; color: string }> = {
@@ -23,10 +24,12 @@ const priorityConfig: Record<string, { text: string; color: string }> = {
   low: { text: '低优先级', color: '#6B7280' },
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onAction }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onAction, onToggleNotification }) => {
   const typeConf = typeConfig[task.type] || typeConfig.review;
   const priorityConf = priorityConfig[task.priority];
   const daysLeft = task.expireAt ? getDaysUntilExpire(task.expireAt) : null;
+  const isNotifyMuted = task.notifyEnabled === false;
+  const isExpireType = task.type === 'expire';
 
   const handleClick = () => {
     if (task.handled) return;
@@ -39,9 +42,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onAction }) => {
     }
   };
 
+  const handleSwitchChange = (e) => {
+    e.stopPropagation();
+    if (onToggleNotification) {
+      onToggleNotification(task.id, e.detail.value);
+    }
+  };
+
   return (
     <View
-      className={classnames(styles.card, task.handled && styles.handled)}
+      className={classnames(styles.card, task.handled && styles.handled, isNotifyMuted && styles.notifyMuted)}
       onClick={handleClick}
     >
       <View className={styles.topRow}>
@@ -57,12 +67,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onAction }) => {
             {task.typeText}
           </Text>
         </View>
-        <Text
-          className={styles.priorityText}
-          style={{ color: priorityConf.color }}
-        >
-          {priorityConf.text}
-        </Text>
+        <View className={styles.priorityRow}>
+          {isNotifyMuted && (
+            <Text className={styles.notifyOffBadge}>提醒已关闭</Text>
+          )}
+          <Text
+            className={styles.priorityText}
+            style={{ color: priorityConf.color }}
+          >
+            {priorityConf.text}
+          </Text>
+        </View>
       </View>
 
       <View className={styles.contentRow}>
@@ -99,6 +114,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onAction }) => {
           </View>
         )}
       </View>
+
+      {isExpireType && !task.handled && (
+        <View className={styles.notifyRow} onClick={(e) => e.stopPropagation()}>
+          <Text className={styles.notifyLabel}>到期提醒</Text>
+          <Switch
+            checked={task.notifyEnabled !== false}
+            onChange={handleSwitchChange}
+            color="#2563eb"
+          />
+        </View>
+      )}
     </View>
   );
 };

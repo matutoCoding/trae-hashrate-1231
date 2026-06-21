@@ -7,7 +7,8 @@ export default defineAppConfig({
     'pages/folder-detail/index',
     'pages/permission-action/index',
     'pages/add-authorization/index',
-    'pages/feedback-detail/index'
+    'pages/feedback-detail/index',
+    'pages/folder-healthcheck/index'
   ],
   window: {
     backgroundTextStyle: 'light',

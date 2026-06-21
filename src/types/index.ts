@@ -44,6 +44,7 @@ export interface Task {
   priority: 'high' | 'medium' | 'low';
   handled: boolean;
   expireAt?: string;
+  notifyEnabled?: boolean;
 }
 
 export interface Record {

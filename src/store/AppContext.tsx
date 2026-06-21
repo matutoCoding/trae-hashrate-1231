@@ -3,7 +3,7 @@ import { UserProfile, Folder, Task, Record, Member, PermissionLevel, ActionType 
 import { initialMembers, initialFolders } from '@/data/folders';
 import { initialTasks } from '@/data/tasks';
 import { initialRecords } from '@/data/records';
-import { dayjs, generateId } from '@/utils';
+import { dayjs, generateId, getDaysUntilExpire } from '@/utils';
 
 interface AppContextType {
   user: UserProfile;
@@ -33,6 +33,23 @@ interface AppContextType {
     expireAt: string;
     notifyBeforeExpire: boolean;
   }) => void;
+  batchPermissionAction: (payload: {
+    folderId: string;
+    memberIds: string[];
+    memberNames: string[];
+    action: ActionType;
+    reason: string;
+    expireAt?: string;
+  }) => void;
+  toggleTaskNotification: (taskId: string, enabled: boolean) => void;
+  recordsFilter: RecordsFilterState;
+  setRecordsFilter: (filter: RecordsFilterState) => void;
+}
+
+export interface RecordsFilterState {
+  actionType: string;
+  folderId: string;
+  memberName: string;
 }
 
 const defaultUser: UserProfile = {
@@ -58,7 +75,7 @@ const recalcFolderStatus = (folder: Folder): Folder => {
   const externalCount = members.filter((m) => m.isExternal).length;
   const editCount = members.filter((m) => m.permission === 'edit').length;
   const expiringSoon = members.filter(
-    (m) => m.expireAt && dayjs(m.expireAt).diff(dayjs(), 'day') <= 3
+    (m) => m.expireAt && getDaysUntilExpire(m.expireAt) <= 3
   ).length;
 
   let status: 'safe' | 'warning' | 'danger' = 'safe';
@@ -87,9 +104,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [folders, setFolders] = useState<Folder[]>(() =>
     initialFolders.map((f) => recalcFolderStatus(f))
   );
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(initialTasks.map(t => ({
+    ...t,
+    notifyEnabled: t.notifyEnabled !== undefined ? t.notifyEnabled : (t.type === 'expire' ? true : undefined),
+  })));
   const [records, setRecords] = useState<Record[]>(initialRecords);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [recordsFilter, setRecordsFilter] = useState<RecordsFilterState>({
+    actionType: 'all',
+    folderId: '',
+    memberName: '',
+  });
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -138,11 +163,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       reason: string;
       expireAt?: string;
     }) => {
-      if (taskId) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? { ...t, handled: true } : t))
-        );
-      }
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.handled) return t;
+          if (taskId && t.id === taskId) return { ...t, handled: true };
+          if (t.folderId === folderId && t.memberId === memberId) return { ...t, handled: true };
+          return t;
+        })
+      );
 
       setFolders((prev) =>
         prev.map((folder) => {
@@ -191,6 +219,85 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     [folders, triggerRefresh, user.name]
   );
 
+  const batchPermissionAction = useCallback(
+    ({
+      folderId,
+      memberIds,
+      memberNames,
+      action,
+      reason,
+      expireAt,
+    }: {
+      folderId: string;
+      memberIds: string[];
+      memberNames: string[];
+      action: ActionType;
+      reason: string;
+      expireAt?: string;
+    }) => {
+      const midSet = new Set(memberIds);
+
+      setTasks((prev) =>
+        prev.map((t) => {
+          if (t.handled) return t;
+          if (t.folderId === folderId && midSet.has(t.memberId)) return { ...t, handled: true };
+          return t;
+        })
+      );
+
+      setFolders((prev) =>
+        prev.map((folder) => {
+          if (folder.id !== folderId) return folder;
+          const newMembers = (folder.members || []).map((m) => {
+            if (!midSet.has(m.id)) return m;
+            if (action === 'retain') {
+              return { ...m, needReview: false, expireAt: expireAt || m.expireAt };
+            }
+            if (action === 'revoke') {
+              return { ...m, needReview: false, permission: 'view' as PermissionLevel };
+            }
+            if (action === 'feedback') {
+              return { ...m, needReview: false };
+            }
+            return m;
+          }).filter((m) => !(action === 'revoke' && midSet.has(m.id) && m.isExternal));
+
+          return recalcFolderStatus({ ...folder, members: newMembers });
+        })
+      );
+
+      const folder = folders.find((f) => f.id === folderId);
+      const newRecords: Record[] = memberIds.map((mid, idx) => ({
+        id: 'r' + generateId() + idx,
+        action,
+        actionText: actionTextMap[action],
+        folderId,
+        folderName: folder?.name || '未知文件夹',
+        memberName: memberNames[idx] || '未知成员',
+        operator: user.name,
+        reason,
+        expireAt: action === 'retain' ? expireAt : undefined,
+        createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        status: action === 'feedback' ? 'pending' as const : 'completed' as const,
+        statusText: action === 'feedback' ? '处理中' : '已生效',
+      }));
+      setRecords((prev) => [...newRecords, ...prev]);
+
+      triggerRefresh();
+    },
+    [folders, triggerRefresh, user.name]
+  );
+
+  const toggleTaskNotification = useCallback(
+    (taskId: string, enabled: boolean) => {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, notifyEnabled: enabled } : t))
+      );
+      triggerRefresh();
+    },
+    [triggerRefresh]
+  );
+
   const addAuthorization = useCallback(
     ({
       folderId,
@@ -205,9 +312,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       expireAt: string;
       notifyBeforeExpire: boolean;
     }) => {
-      const allMembers = initialMembers;
-      const addedMembers: Member[] = memberIds
-        .map((mid) => allMembers.find((m) => m.id === mid))
+      const sourceMembers = initialMembers;
+      const resolvedMembers: Member[] = memberIds
+        .map((mid) => sourceMembers.find((m) => m.id === mid))
         .filter(Boolean)
         .map((m) => ({
           ...(m as Member),
@@ -220,20 +327,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setFolders((prev) =>
         prev.map((folder) => {
           if (folder.id !== folderId) return folder;
-          const existIds = new Set((folder.members || []).map((m) => m.id));
-          const toAdd = addedMembers.filter((m) => !existIds.has(m.id));
-          const newMembers = [...(folder.members || []), ...toAdd];
-          return recalcFolderStatus({ ...folder, members: newMembers });
+          const existingMap = new Map((folder.members || []).map((m) => [m.id, m]));
+          const newMembers = (folder.members || []).map((m) => {
+            const updated = resolvedMembers.find((r) => r.id === m.id);
+            if (updated) {
+              return { ...m, permission: updated.permission, expireAt: updated.expireAt };
+            }
+            return m;
+          });
+          const toAdd = resolvedMembers.filter((m) => !existingMap.has(m.id));
+          return recalcFolderStatus({ ...folder, members: [...newMembers, ...toAdd] });
         })
       );
 
       if (notifyBeforeExpire) {
         const folder = folders.find((f) => f.id === folderId);
         const daysUntil = dayjs(expireAt).diff(dayjs(), 'day');
-        const newTasks: Task[] = addedMembers.map((m, idx) => ({
+        const newTasks: Task[] = resolvedMembers.map((m, idx) => ({
           id: 't' + generateId() + idx,
           type: daysUntil <= 3 ? 'expire' : 'review',
-          typeText: daysUntil <= 3 ? '即将到期' : '权限审核',
+          typeText: daysUntil <= 0 ? '今天到期' : daysUntil <= 3 ? '即将到期' : '权限审核',
           folderId,
           folderName: folder?.name || '未知文件夹',
           memberId: m.id,
@@ -241,28 +354,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           memberAvatar: m.avatar,
           description: `${m.name} 的临时授权将于 ${expireAt} 到期，请确认是否续期`,
           createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-          priority: daysUntil <= 3 ? 'high' : daysUntil <= 7 ? 'medium' : 'low',
+          priority: daysUntil <= 0 ? 'high' : daysUntil <= 3 ? 'high' : daysUntil <= 7 ? 'medium' : 'low',
           handled: false,
           expireAt,
+          notifyEnabled: true,
         }));
         setTasks((prev) => [...newTasks, ...prev]);
       }
 
       const folder = folders.find((f) => f.id === folderId);
-      const newRecords: Record[] = addedMembers.map((m, idx) => ({
-        id: 'r' + generateId() + idx,
-        action: 'retain' as ActionType,
-        actionText: '临时授权',
-        folderId,
-        folderName: folder?.name || '未知文件夹',
-        memberName: m.name,
-        operator: user.name,
-        reason: `新增临时${permission === 'edit' ? '编辑' : '查看'}授权${notifyBeforeExpire ? '，已开启到期提醒' : ''}`,
-        expireAt,
-        createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        status: 'completed',
-        statusText: '已生效',
-      }));
+      const newRecords: Record[] = resolvedMembers.map((m, idx) => {
+        const existingInFolder = folder?.members?.find((f) => f.id === m.id);
+        const isUpdate = !!existingInFolder;
+        return {
+          id: 'r' + generateId() + idx,
+          action: 'retain' as ActionType,
+          actionText: isUpdate ? '调整授权' : '临时授权',
+          folderId,
+          folderName: folder?.name || '未知文件夹',
+          memberName: m.name,
+          operator: user.name,
+          reason: isUpdate
+            ? `调整${permission === 'edit' ? '编辑' : '查看'}授权，有效期至 ${expireAt}${notifyBeforeExpire ? '，已开启到期提醒' : ''}`
+            : `新增临时${permission === 'edit' ? '编辑' : '查看'}授权${notifyBeforeExpire ? '，已开启到期提醒' : ''}`,
+          expireAt,
+          createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+          status: 'completed' as const,
+          statusText: '已生效',
+        };
+      });
       setRecords((prev) => [...newRecords, ...prev]);
 
       triggerRefresh();
@@ -286,6 +406,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         getMemberById,
         handlePermissionAction,
         addAuthorization,
+        batchPermissionAction,
+        toggleTaskNotification,
+        recordsFilter,
+        setRecordsFilter,
       }}
     >
       {children}

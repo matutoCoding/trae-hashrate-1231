@@ -6,9 +6,11 @@ import { useAppContext } from '@/store/AppContext';
 import TaskCard from '@/components/TaskCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Task } from '@/types';
+import { getDaysUntilExpire } from '@/utils';
 import styles from './index.module.scss';
 
 type TabType = 'pending' | 'handled' | 'all';
+type UrgencyType = 'all' | 'today' | '3day' | '7day';
 
 const tabs: { key: TabType; label: string }[] = [
   { key: 'pending', label: '待处理' },
@@ -16,9 +18,26 @@ const tabs: { key: TabType; label: string }[] = [
   { key: 'all', label: '全部' },
 ];
 
+const urgencyChips: { key: UrgencyType; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'today', label: '今天到期' },
+  { key: '3day', label: '3天内到期' },
+  { key: '7day', label: '7天内到期' },
+];
+
+const getUrgencyCategory = (task: Task): UrgencyType | null => {
+  if (!task.expireAt || task.handled) return null;
+  const daysLeft = getDaysUntilExpire(task.expireAt);
+  if (daysLeft <= 0) return 'today';
+  if (daysLeft <= 3) return '3day';
+  if (daysLeft <= 7) return '7day';
+  return null;
+};
+
 const TasksPage: React.FC = () => {
-  const { tasks, refreshKey, triggerRefresh } = useAppContext();
+  const { tasks, refreshKey, triggerRefresh, toggleTaskNotification } = useAppContext();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [activeUrgency, setActiveUrgency] = useState<UrgencyType>('all');
 
   usePullDownRefresh(() => {
     setTimeout(() => {
@@ -27,6 +46,19 @@ const TasksPage: React.FC = () => {
       Taro.showToast({ title: '刷新成功', icon: 'success' });
     }, 800);
   });
+
+  const pendingExpireTasks = useMemo(() => {
+    return tasks.filter((t) => !t.handled && t.expireAt);
+  }, [tasks, refreshKey]);
+
+  const urgencyCounts = useMemo(() => {
+    const counts = { today: 0, '3day': 0, '7day': 0 };
+    pendingExpireTasks.forEach((t) => {
+      const cat = getUrgencyCategory(t);
+      if (cat) counts[cat]++;
+    });
+    return counts;
+  }, [pendingExpireTasks]);
 
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
@@ -38,17 +70,30 @@ const TasksPage: React.FC = () => {
         result = result.filter((t) => t.handled);
         break;
     }
+
+    if (activeTab === 'pending' && activeUrgency !== 'all') {
+      result = result.filter((t) => {
+        const cat = getUrgencyCategory(t);
+        if (activeUrgency === 'today') return cat === 'today';
+        if (activeUrgency === '3day') return cat === 'today' || cat === '3day';
+        if (activeUrgency === '7day') return cat === 'today' || cat === '3day' || cat === '7day';
+        return true;
+      });
+    }
+
     return result.sort((a, b) => {
       if (a.handled !== b.handled) return a.handled ? 1 : -1;
       const priorityOrder = { high: 0, medium: 1, low: 2 } as const;
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     });
-  }, [activeTab, tasks, refreshKey]);
+  }, [activeTab, activeUrgency, tasks, refreshKey]);
 
   const stats = useMemo(() => {
     const pending = tasks.filter((t) => !t.handled);
     const highPriority = pending.filter((t) => t.priority === 'high').length;
-    const expiringSoon = pending.filter((t) => t.expireAt).length;
+    const expiringSoon = pending.filter(
+      (t) => t.expireAt && t.notifyEnabled !== false
+    ).length;
     return {
       pendingCount: pending.length,
       highPriority,
@@ -67,6 +112,10 @@ const TasksPage: React.FC = () => {
     Taro.navigateTo({
       url: '/pages/add-authorization/index',
     });
+  };
+
+  const handleToggleNotification = (taskId: string, enabled: boolean) => {
+    toggleTaskNotification(taskId, enabled);
   };
 
   return (
@@ -89,7 +138,10 @@ const TasksPage: React.FC = () => {
               <View
                 key={tab.key}
                 className={classnames(styles.tabItem, activeTab === tab.key && styles.active)}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setActiveUrgency('all');
+                }}
               >
                 <Text>{tab.label}</Text>
                 {count > 0 && tab.key !== 'all' && (
@@ -154,6 +206,37 @@ const TasksPage: React.FC = () => {
         </View>
       </View>
 
+      {activeTab === 'pending' && pendingExpireTasks.length > 0 && (
+        <View className={styles.urgencyBar}>
+          {urgencyChips.map((chip) => {
+            const chipCount =
+              chip.key === 'all'
+                ? pendingExpireTasks.length
+                : chip.key === 'today'
+                ? urgencyCounts.today
+                : chip.key === '3day'
+                ? urgencyCounts.today + urgencyCounts['3day']
+                : urgencyCounts.today + urgencyCounts['3day'] + urgencyCounts['7day'];
+            if (chip.key !== 'all' && chipCount === 0) return null;
+            return (
+              <View
+                key={chip.key}
+                className={classnames(
+                  styles.urgencyChip,
+                  activeUrgency === chip.key && styles.urgencyChipActive
+                )}
+                onClick={() => setActiveUrgency(chip.key)}
+              >
+                <Text className={styles.urgencyChipText}>{chip.label}</Text>
+                {chipCount > 0 && (
+                  <Text className={styles.urgencyChipCount}>{chipCount}</Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       <SectionHeader
         title={activeTab === 'pending' ? '待办列表' : activeTab === 'handled' ? '已处理记录' : '全部事项'}
         desc={`${filteredTasks.length} 项`}
@@ -162,7 +245,12 @@ const TasksPage: React.FC = () => {
       <View className={styles.listWrap}>
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => (
-            <TaskCard key={task.id} task={task} onAction={handleTaskAction} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              onAction={handleTaskAction}
+              onToggleNotification={handleToggleNotification}
+            />
           ))
         ) : (
           <View className={styles.emptyState}>

@@ -3,7 +3,7 @@ import { View, Text, Image, ScrollView, Input, Switch } from '@tarojs/components
 import Taro, { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
 import { useAppContext } from '@/store/AppContext';
-import { dayjs } from '@/utils';
+import { dayjs, getPermissionText } from '@/utils';
 import { Member, PermissionLevel, Folder } from '@/types';
 import styles from './index.module.scss';
 
@@ -21,17 +21,42 @@ const AddAuthorizationPage: React.FC = () => {
   );
   const [notifyBeforeExpire, setNotifyBeforeExpire] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showExisting, setShowExisting] = useState(false);
 
-  const candidateMembers = useMemo(() => {
-    if (!searchText.trim()) return allMembers.slice(0, 6);
+  const selectedFolder: Folder | undefined = getFolderById(selectedFolderId);
+  const existingMemberIds = useMemo(() => {
+    if (!selectedFolder?.members) return new Set<string>();
+    return new Set(selectedFolder.members.map((m) => m.id));
+  }, [selectedFolder]);
+
+  const getExistingMemberInfo = (id: string) => {
+    return selectedFolder?.members?.find((m) => m.id === id);
+  };
+
+  const newMembers = useMemo(() => {
     const kw = searchText.trim().toLowerCase();
-    return allMembers.filter(
+    return allMembers.filter((m) => {
+      if (existingMemberIds.has(m.id)) return false;
+      if (!kw) return true;
+      return (
+        m.name.toLowerCase().includes(kw) ||
+        m.department.toLowerCase().includes(kw) ||
+        (m.externalCompany && m.externalCompany.toLowerCase().includes(kw))
+      );
+    });
+  }, [allMembers, existingMemberIds, searchText]);
+
+  const existingMembersInFolder = useMemo(() => {
+    if (!selectedFolder?.members) return [];
+    const kw = searchText.trim().toLowerCase();
+    if (!kw) return selectedFolder.members;
+    return selectedFolder.members.filter(
       (m) =>
         m.name.toLowerCase().includes(kw) ||
         m.department.toLowerCase().includes(kw) ||
         (m.externalCompany && m.externalCompany.toLowerCase().includes(kw))
     );
-  }, [searchText, allMembers]);
+  }, [selectedFolder, searchText]);
 
   const quickDateOptions = [
     { label: '1天', days: 1 },
@@ -41,8 +66,6 @@ const AddAuthorizationPage: React.FC = () => {
     { label: '30天', days: 30 },
     { label: '自定义', days: -1 },
   ];
-
-  const selectedFolder: Folder | undefined = getFolderById(selectedFolderId);
 
   const isDateActive = (days: number) => {
     if (days === -1) return false;
@@ -80,6 +103,7 @@ const AddAuthorizationPage: React.FC = () => {
       itemList: folders.map((f) => f.name),
       success: (res) => {
         setSelectedFolderId(folders[res.tapIndex].id);
+        setSelectedMembers([]);
       },
     });
   };
@@ -135,6 +159,47 @@ const AddAuthorizationPage: React.FC = () => {
     Taro.navigateBack({ delta: 1 });
   };
 
+  const renderMemberItem = (m: Member, isExisting: boolean) => {
+    const existingInfo = isExisting ? getExistingMemberInfo(m.id) : null;
+    return (
+      <View
+        key={m.id}
+        className={classnames(
+          styles.suggestionItem,
+          selectedMembers.includes(m.id) && styles.active,
+          isExisting && styles.existingMember
+        )}
+        onClick={() => toggleMember(m.id)}
+      >
+        <Image className={styles.sugAvatar} src={m.avatar} mode="aspectFill" />
+        <View className={styles.sugInfo}>
+          <View className={styles.sugNameRow}>
+            <Text className={styles.sugName}>{m.name}</Text>
+            <Text
+              className={classnames(
+                styles.sugTag,
+                m.isExternal ? styles.external : styles.internal
+              )}
+            >
+              {m.isExternal ? m.externalCompany || '外部' : '内部'}
+            </Text>
+            {isExisting && (
+              <Text className={styles.existingTag}>已在文件夹</Text>
+            )}
+          </View>
+          <Text className={styles.sugDept}>{m.department}</Text>
+          {isExisting && existingInfo && (
+            <Text className={styles.existingInfo}>
+              当前：{getPermissionText(existingInfo.permission)}
+              {existingInfo.expireAt ? ` · 有效期至 ${existingInfo.expireAt}` : ''}
+            </Text>
+          )}
+        </View>
+        <View className={styles.sugCheck}>✓</View>
+      </View>
+    );
+  };
+
   return (
     <>
       <ScrollView scrollY className="pageContainer">
@@ -143,14 +208,13 @@ const AddAuthorizationPage: React.FC = () => {
           <View className={styles.tipContent}>
             <Text className={styles.tipTitle}>临时授权使用场景</Text>
             <Text className={styles.tipText}>
-              适用于出差期间临时加人、短期项目合作等场景。授权到期前会自动推送确认提醒，确保权限不被遗留。
+              适用于出差期间临时加人、短期项目合作等场景。选择已有成员可延长或调整其授权。
             </Text>
           </View>
         </View>
 
         <View className={styles.formSection}>
           <Text className={styles.formTitle}>👥 选择授权成员</Text>
-
           <View className={styles.formRow}>
             <Text className={styles.formLabel}>
               搜索成员
@@ -175,39 +239,40 @@ const AddAuthorizationPage: React.FC = () => {
               </View>
             )}
 
-            <View className={styles.memberSuggestions}>
-              {candidateMembers.map((m) => (
-                <View
-                  key={m.id}
-                  className={classnames(
-                    styles.suggestionItem,
-                    selectedMembers.includes(m.id) && styles.active
-                  )}
-                  onClick={() => toggleMember(m.id)}
-                >
-                  <Image
-                    className={styles.sugAvatar}
-                    src={m.avatar}
-                    mode="aspectFill"
-                  />
-                  <View className={styles.sugInfo}>
-                    <View className={styles.sugNameRow}>
-                      <Text className={styles.sugName}>{m.name}</Text>
-                      <Text
-                        className={classnames(
-                          styles.sugTag,
-                          m.isExternal ? styles.external : styles.internal
-                        )}
-                      >
-                        {m.isExternal ? m.externalCompany || '外部' : '内部'}
-                      </Text>
-                    </View>
-                    <Text className={styles.sugDept}>{m.department}</Text>
-                  </View>
-                  <View className={styles.sugCheck}>✓</View>
-                </View>
-              ))}
+            <View className={styles.memberSectionTitle}>
+              <Text className={styles.sectionLabel}>🆕 可新增授权</Text>
+              <Text className={styles.sectionCount}>{newMembers.length} 人</Text>
             </View>
+            <View className={styles.memberSuggestions}>
+              {(searchText.trim() ? newMembers : newMembers.slice(0, 6)).map((m) =>
+                renderMemberItem(m, false)
+              )}
+              {!searchText.trim() && newMembers.length === 0 && (
+                <Text className={styles.noResult}>暂无可新增成员</Text>
+              )}
+            </View>
+
+            <View className={styles.memberSectionTitle}>
+              <View
+                className={styles.sectionToggle}
+                onClick={() => setShowExisting(!showExisting)}
+              >
+                <Text className={styles.sectionLabel}>📋 已在当前文件夹</Text>
+                <Text className={styles.sectionCount}>
+                  {existingMembersInFolder.length} 人
+                </Text>
+                <Text className={styles.toggleArrow}>
+                  {showExisting ? '▾' : '▸'}
+                </Text>
+              </View>
+            </View>
+            {showExisting && (
+              <View className={styles.memberSuggestions}>
+                {existingMembersInFolder.map((m) =>
+                  renderMemberItem(m, true)
+                )}
+              </View>
+            )}
           </View>
         </View>
 
@@ -292,9 +357,7 @@ const AddAuthorizationPage: React.FC = () => {
                   )}
                   onClick={() => {
                     if (opt.days !== -1) {
-                      setExpireDate(
-                        dayjs().add(opt.days, 'day').format('YYYY-MM-DD')
-                      );
+                      setExpireDate(dayjs().add(opt.days, 'day').format('YYYY-MM-DD'));
                     } else {
                       handleDatePick();
                     }
