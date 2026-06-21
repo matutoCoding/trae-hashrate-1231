@@ -1,0 +1,150 @@
+@use '@/styles/variables.scss' as *;
+
+.header {
+  padding: $spacing-lg 0;
+}
+
+.pageTitle {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: 8rpx;
+}
+
+.pageDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.tabsBar {
+  display: flex;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 6rpx;
+  margin: $spacing-lg 0 $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.tabItem {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+  position: relative;
+
+  &.active {
+    background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+    color: $color-text-white;
+    box-shadow: 0 4rpx 12rpx rgba(37, 99, 235, 0.25);
+  }
+}
+
+.tabCount {
+  position: absolute;
+  top: 2rpx;
+  right: 30rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 8rpx;
+  border-radius: $radius-round;
+  background: $color-status-danger;
+  color: $color-text-white;
+  font-size: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+
+  .active & {
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+
+.quickActions {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.quickCard {
+  flex: 1;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.quickIconWrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quickIcon {
+  font-size: 36rpx;
+}
+
+.quickInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.quickValue {
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.quickLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.listWrap {
+  padding-top: $spacing-sm;
+}
+
+.emptyState {
+  padding: 120rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.emptyDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  opacity: 0.8;
+}

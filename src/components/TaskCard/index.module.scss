@@ -1,0 +1,146 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  transition: all $transition-base;
+
+  &:active:not(.handled) {
+    transform: scale(0.99);
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+.handled {
+  opacity: 0.65;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.typeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-xs;
+}
+
+.typeIcon {
+  font-size: 22rpx;
+}
+
+.typeText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.priorityText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.contentRow {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-round;
+  flex-shrink: 0;
+  background: $color-bg-hover;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.memberName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.description {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  @include text-ellipsis-multi(2);
+}
+
+.folderName {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  @include text-ellipsis;
+}
+
+.bottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+}
+
+.createTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.daysBadge {
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  background: $color-status-danger-bg;
+}
+
+.daysText {
+  font-size: 20rpx;
+  color: $color-status-danger;
+  font-weight: $font-weight-medium;
+}
+
+.actionBtn {
+  padding: 10rpx 24rpx;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  margin-left: auto;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.actionText {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.doneBadge {
+  padding: 10rpx 24rpx;
+  border-radius: $radius-button;
+  background: $color-status-safe-bg;
+  margin-left: auto;
+}
+
+.doneText {
+  font-size: $font-size-sm;
+  color: $color-status-safe;
+  font-weight: $font-weight-medium;
+}

@@ -1,0 +1,333 @@
+@use '@/styles/variables.scss' as *;
+
+.pageWrap {
+  padding: 0 $spacing-lg 200rpx;
+}
+
+.statusHeader {
+  margin: $spacing-lg 0 $spacing-md;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  box-shadow: $shadow-card;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+
+  &.pending {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  }
+
+  &.completed {
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+  }
+}
+
+.statusIconWrap {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  flex-shrink: 0;
+}
+
+.statusInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.statusMain {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.statusSub {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.detailCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.detailRow {
+  display: flex;
+  align-items: flex-start;
+  padding: $spacing-sm 0;
+
+  & + & {
+    border-top: 1rpx solid $color-divider;
+  }
+}
+
+.detailLabel {
+  width: 160rpx;
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  padding-top: 2rpx;
+}
+
+.detailValue {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: 1.6;
+  word-break: break-all;
+
+  &.link {
+    color: $color-primary;
+  }
+}
+
+.memberMini {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.avatarMini {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  flex-shrink: 0;
+}
+
+.memberMiniInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  min-width: 0;
+}
+
+.memberMiniName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.externalBadgeMini {
+  padding: 0 10rpx;
+  border-radius: $radius-xs;
+  background: $color-external-bg;
+  font-size: 18rpx;
+  color: $color-external;
+}
+
+.memberMiniMeta {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.reasonBox {
+  margin-top: $spacing-sm;
+  padding: $spacing-md;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FEF9C3 100%);
+  border-radius: $radius-md;
+  border-left: 6rpx solid $color-status-warning;
+  font-size: $font-size-sm;
+  color: #92400E;
+  line-height: 1.7;
+}
+
+.timelineSection {
+  margin-bottom: $spacing-md;
+}
+
+.timelineTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.timelineWrap {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg $spacing-xl;
+  box-shadow: $shadow-card;
+}
+
+.timelineItem {
+  position: relative;
+  padding-left: $spacing-xl;
+  padding-bottom: $spacing-lg;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .timelineLine {
+      display: none;
+    }
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: 0;
+  top: 6rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  border: 4rpx solid #DBEAFE;
+
+  &.done {
+    background: $color-status-safe;
+    border-color: #D1FAE5;
+  }
+
+  &.warn {
+    background: $color-status-warning;
+    border-color: #FEF3C7;
+  }
+}
+
+.timelineLine {
+  position: absolute;
+  left: 10rpx;
+  top: 40rpx;
+  width: 2rpx;
+  bottom: 0;
+  background: $color-divider;
+}
+
+.timelineContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.timelineAction {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.timelineDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.timelineTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.actionTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.retain {
+    background: #D1FAE5;
+    color: #059669;
+  }
+
+  &.revoke {
+    background: #FEE2E2;
+    color: #DC2626;
+  }
+
+  &.feedback {
+    background: #DBEAFE;
+    color: #2563EB;
+  }
+}
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.pending {
+    background: #FEF3C7;
+    color: #D97706;
+  }
+
+  &.completed {
+    background: #D1FAE5;
+    color: #059669;
+  }
+}
+
+.bottomBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: $color-bg-card;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(env(safe-area-inset-bottom) + #{$spacing-md});
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: $spacing-md;
+}
+
+.secondaryBtn {
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background: $color-bg-page;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+}
+
+.primaryBtn {
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  box-shadow: 0 4rpx 20rpx rgba(37, 99, 235, 0.3);
+  font-size: $font-size-md;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}

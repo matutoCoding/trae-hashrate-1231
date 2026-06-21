@@ -1,0 +1,120 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.99);
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.folderIconWrap {
+  flex-shrink: 0;
+}
+
+.folderIcon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.safe {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  }
+  &.warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  }
+  &.danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  }
+}
+
+.folderIconText {
+  font-size: 40rpx;
+}
+
+.titleWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding-top: 4rpx;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.updateTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.description {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  @include text-ellipsis-multi(2);
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.statIcon {
+  font-size: 24rpx;
+  opacity: 0.7;
+}
+
+.statValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statDivider {
+  width: 1rpx;
+  height: 32rpx;
+  background: $color-divider;
+}
+
+.hasExternal {
+  .statValue {
+    color: $color-external;
+  }
+}

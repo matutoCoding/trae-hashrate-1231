@@ -1,0 +1,165 @@
+@use '@/styles/variables.scss' as *;
+
+.profileCard {
+  margin-top: $spacing-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  box-shadow: 0 8rpx 32rpx rgba(37, 99, 235, 0.25);
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: $radius-round;
+  border: 6rpx solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.profileInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.userName {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.userRole {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.userDept {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.75);
+  @include text-ellipsis;
+}
+
+.statsMiniGrid {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.15);
+}
+
+.statsMiniItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.statsMiniNum {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}
+
+.statsMiniLabel {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.menuGroup {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  overflow: hidden;
+}
+
+.groupTitle {
+  padding: $spacing-md $spacing-lg $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-lg;
+  gap: $spacing-md;
+  transition: background $transition-fast;
+
+  &:active {
+    background: $color-bg-hover;
+  }
+
+  & + & {
+    border-top: 1rpx solid $color-divider;
+  }
+}
+
+.menuIconWrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menuIcon {
+  font-size: 36rpx;
+}
+
+.menuContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.menuTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.menuDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.menuArrow {
+  font-size: 28rpx;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.menuBadge {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+  background: $color-status-danger-bg;
+  color: $color-status-danger;
+  font-size: 20rpx;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
+.versionRow {
+  padding: $spacing-xl 0 $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.versionText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
