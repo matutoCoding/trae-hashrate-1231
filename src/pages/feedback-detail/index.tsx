@@ -200,6 +200,18 @@ const FeedbackDetailPage: React.FC = () => {
               </View>
             )}
 
+            {record.templateUsedText && (
+              <View className={styles.detailRow}>
+                <Text className={styles.detailLabel}>处理方案</Text>
+                <View className={styles.detailValue}>
+                  <View className={styles.templateRow}>
+                    <Text className={styles.templateIcon}>📋</Text>
+                    <Text className={styles.templateText}>{record.templateUsedText}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {record.reason && (
               <View className={styles.detailRow}>
                 <Text className={styles.detailLabel}>原因说明</Text>

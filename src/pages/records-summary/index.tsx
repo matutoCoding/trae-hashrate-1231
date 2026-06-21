@@ -190,8 +190,15 @@ const RecordsSummaryPage: React.FC = () => {
                                 styles.actionTag + ' ' + styles[record.action]
                               }
                             >
-                              <Text>{actionLabelMap[record.action]}</Text>
+                              <Text>{record.actionText}</Text>
                             </View>
+                            {record.templateUsedText && (
+                              <View className={styles.templateTag}>
+                                <Text className={styles.templateTagText}>
+                                  📋 {record.templateUsedText}
+                                </Text>
+                              </View>
+                            )}
                           </View>
                           <Text className={styles.memberDept}>
                             {meta.department}

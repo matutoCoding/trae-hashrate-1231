@@ -230,6 +230,19 @@
   }
 }
 
+.templateTag {
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%);
+  flex-shrink: 0;
+}
+
+.templateTagText {
+  font-size: 18rpx;
+  color: #6D28D9;
+  font-weight: $font-weight-medium;
+}
+
 .memberDept {
   font-size: $font-size-xs;
   color: $color-text-tertiary;

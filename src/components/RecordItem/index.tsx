@@ -45,12 +45,19 @@ const RecordItem: React.FC<RecordItemProps> = ({ record }) => {
 
       <View className={styles.mainCol}>
         <View className={styles.topRow}>
-          <Text
-            className={styles.actionText}
-            style={{ color: actConf.color }}
-          >
-            {record.actionText}
-          </Text>
+          <View className={styles.actionRow}>
+            <Text
+              className={styles.actionText}
+              style={{ color: actConf.color }}
+            >
+              {record.actionText}
+            </Text>
+            {record.templateUsedText && (
+              <View className={styles.templateTag}>
+                <Text className={styles.templateTagText}>📋 {record.templateUsedText}</Text>
+              </View>
+            )}
+          </View>
           <View
             className={styles.statusTag}
             style={{ background: statConf.bg }}

@@ -54,6 +54,28 @@
   font-weight: $font-weight-semibold;
 }
 
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.templateTag {
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%);
+  flex-shrink: 0;
+}
+
+.templateTagText {
+  font-size: 18rpx;
+  color: #6D28D9;
+  font-weight: $font-weight-medium;
+}
+
 .statusTag {
   padding: 4rpx 14rpx;
   border-radius: $radius-xs;

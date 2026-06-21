@@ -92,6 +92,26 @@
   }
 }
 
+.templateRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-sm;
+  background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%);
+  border-radius: $radius-sm;
+  align-self: flex-start;
+}
+
+.templateIcon {
+  font-size: $font-size-sm;
+}
+
+.templateText {
+  font-size: $font-size-sm;
+  color: #6D28D9;
+  font-weight: $font-weight-medium;
+}
+
 .memberMini {
   display: flex;
   align-items: center;
